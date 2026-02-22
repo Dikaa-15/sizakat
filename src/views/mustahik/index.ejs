@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 min-h-screen">
+    <%- include('../layouts/topnav', { title, user, activePage }) %>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-5">
+      <section class="bg-white rounded-xl shadow-sm p-4">
+        <form method="GET" action="/mustahik" class="grid md:grid-cols-5 gap-3">
+          <input name="search" value="<%= filters.search %>" placeholder="Cari nama" class="md:col-span-2 rounded-lg border border-slate-300 px-3 py-2" />
+
+          <select name="kategori" class="rounded-lg border border-slate-300 px-3 py-2">
+            <option value="">Semua Kategori</option>
+            <% kategoriList.forEach((kategori) => { %>
+              <option value="<%= kategori %>" <%= filters.kategori === kategori ? 'selected' : '' %>><%= kategori %></option>
+            <% }) %>
+          </select>
+
+          <select name="rt_rw_id" class="rounded-lg border border-slate-300 px-3 py-2">
+            <option value="">Semua RT/RW</option>
+            <% rtRwList.forEach((item) => { %>
+              <option value="<%= item.id %>" <%= filters.rt_rw_id === String(item.id) ? 'selected' : '' %>>RT <%= item.rt %> / RW <%= item.rw %></option>
+            <% }) %>
+          </select>
+
+          <div class="flex gap-2 justify-end">
+            <a href="/mustahik" class="px-4 py-2 rounded-lg border border-slate-300 text-sm">Reset</a>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm">Filter</button>
+            <button type="button" id="openCreateModal" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm">Tambah Mustahik</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="text-left px-4 py-3">Nama</th>
+              <th class="text-left px-4 py-3">Kategori</th>
+              <th class="text-left px-4 py-3">RT/RW</th>
+              <th class="text-left px-4 py-3">Jiwa</th>
+              <th class="text-left px-4 py-3">Hak Beras</th>
+              <th class="text-left px-4 py-3">Hak Uang</th>
+              <th class="text-right px-4 py-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (mustahikList.length === 0) { %>
+              <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada data mustahik</td>
+              </tr>
+            <% } %>
+
+            <% mustahikList.forEach((item) => { %>
+              <tr class="border-t border-slate-100">
+                <td class="px-4 py-3"><%= item.nama %></td>
+                <td class="px-4 py-3"><%= item.kategori %></td>
+                <td class="px-4 py-3">
+                  <% if (item.rt && item.rw) { %>
+                    RT <%= item.rt %> / RW <%= item.rw %>
+                  <% } else { %>
+                    -
+                  <% } %>
+                </td>
+                <td class="px-4 py-3"><%= item.jumlah_jiwa %></td>
+                <td class="px-4 py-3"><%= Number(item.hak_beras_kg || 0).toFixed(2) %> kg</td>
+                <td class="px-4 py-3">Rp <%= Number(item.hak_uang || 0).toLocaleString('id-ID') %></td>
+                <td class="px-4 py-3 text-right">
+                  <button type="button" class="editBtn text-blue-600 hover:text-blue-700 mr-3" data-item='<%- JSON.stringify(item) %>'>Edit</button>
+                  <% if (user.role === 'admin') { %>
+                    <button type="button" class="deleteBtn text-red-600 hover:text-red-700" data-id="<%= item.id %>">Hapus</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4">
+      <div class="bg-white w-full max-w-2xl rounded-xl p-5">
+        <h2 id="modalTitle" class="text-lg font-semibold mb-4">Tambah Mustahik</h2>
+
+        <form id="mustahikForm" class="grid md:grid-cols-2 gap-3">
+          <input type="hidden" id="mustahikId" />
+
+          <div class="md:col-span-2">
+            <label class="text-sm">Nama</label>
+            <input id="nama" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">Kategori</label>
+            <select id="kategori" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+              <% kategoriList.forEach((kategori) => { %>
+                <option value="<%= kategori %>"><%= kategori %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm">RT/RW (opsional)</label>
+            <select id="rt_rw_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+              <option value="">Tidak diisi</option>
+              <% rtRwList.forEach((item) => { %>
+                <option value="<%= item.id %>">RT <%= item.rt %> / RW <%= item.rw %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm">Jumlah Jiwa</label>
+            <input id="jumlah_jiwa" type="number" min="1" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">No HP</label>
+            <input id="no_hp" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="text-sm">Alamat Detail</label>
+            <input id="alamat_detail" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <p id="formError" class="md:col-span-2 text-sm text-red-600 hidden"></p>
+
+          <div class="md:col-span-2 flex justify-end gap-2 pt-2">
+            <button type="button" id="closeModal" class="px-4 py-2 border border-slate-300 rounded-lg">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="/js/mustahik-page.js"></script>
+  </body>
+</html>

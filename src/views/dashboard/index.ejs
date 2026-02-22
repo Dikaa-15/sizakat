@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 min-h-screen">
+    <%- include('../layouts/topnav', { title, user, activePage }) %>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-5">
+      <section class="grid md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500">
+          <p class="text-sm text-slate-500">Total Penerimaan Beras</p>
+          <p class="text-2xl font-semibold"><%= Number(summary.penerimaan.total_beras_kg || 0).toFixed(2) %> kg</p>
+          <p class="text-xs text-slate-400">Muzakki: <%= summary.penerimaan.total_muzakki %></p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+          <p class="text-sm text-slate-500">Total Penerimaan Uang</p>
+          <p class="text-2xl font-semibold">Rp <%= Number(summary.penerimaan.total_uang || 0).toLocaleString('id-ID') %></p>
+          <p class="text-xs text-slate-400">Distribusi transaksi: <%= summary.distribusi.total_transaksi %></p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
+          <p class="text-sm text-slate-500">Sisa Zakat</p>
+          <p class="text-sm font-medium">Beras: <%= Number(summary.sisa.sisa_beras_kg || 0).toFixed(2) %> kg</p>
+          <p class="text-sm font-medium">Uang: Rp <%= Number(summary.sisa.sisa_uang || 0).toLocaleString('id-ID') %></p>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm p-4">
+        <h2 class="font-semibold mb-3">Komposisi Kategori Mustahik</h2>
+        <div class="grid md:grid-cols-4 gap-3">
+          <% if (kategoriMustahik.length === 0) { %>
+            <p class="text-sm text-slate-500">Belum ada data mustahik.</p>
+          <% } %>
+          <% kategoriMustahik.forEach((row) => { %>
+            <div class="rounded-lg border border-slate-200 p-3">
+              <p class="text-xs text-slate-500"><%= row.kategori %></p>
+              <p class="text-xl font-semibold"><%= row.total %></p>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        const response = await fetch('/auth/logout', { method: 'POST' });
+        if (response.ok) window.location.href = '/login';
+      });
+    </script>
+  </body>
+</html>

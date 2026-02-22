@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 min-h-screen">
+    <%- include('../layouts/topnav', { title, user, activePage }) %>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-5">
+      <section class="grid md:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
+          <p class="text-sm text-slate-500">Stok Beras Tersedia</p>
+          <p class="text-2xl font-semibold"><%= Number(stock.stok_beras_kg || 0).toFixed(2) %> kg</p>
+          <p class="text-xs text-slate-400">Masuk: <%= Number(stock.total_beras_masuk || 0).toFixed(2) %> kg | Keluar: <%= Number(stock.total_beras_keluar || 0).toFixed(2) %> kg</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
+          <p class="text-sm text-slate-500">Stok Uang Tersedia</p>
+          <p class="text-2xl font-semibold">Rp <%= Number(stock.stok_uang || 0).toLocaleString('id-ID') %></p>
+          <p class="text-xs text-slate-400">Masuk: Rp <%= Number(stock.total_uang_masuk || 0).toLocaleString('id-ID') %> | Keluar: Rp <%= Number(stock.total_uang_keluar || 0).toLocaleString('id-ID') %></p>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold">Daftar Mustahik</h2>
+          <button type="button" id="openCreateModal" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm">Salurkan Manual</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="text-left px-4 py-3">Nama</th>
+                <th class="text-left px-4 py-3">Kategori</th>
+                <th class="text-left px-4 py-3">RT/RW</th>
+                <th class="text-left px-4 py-3">Hak Beras</th>
+                <th class="text-left px-4 py-3">Hak Uang</th>
+                <th class="text-right px-4 py-3">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% mustahikList.forEach((item) => { %>
+                <tr class="border-t border-slate-100">
+                  <td class="px-4 py-3"><%= item.nama %></td>
+                  <td class="px-4 py-3"><%= item.kategori %></td>
+                  <td class="px-4 py-3"><%= item.rt && item.rw ? `RT ${item.rt} / RW ${item.rw}` : '-' %></td>
+                  <td class="px-4 py-3"><%= Number(item.hak_beras_kg || 0).toFixed(2) %> kg</td>
+                  <td class="px-4 py-3">Rp <%= Number(item.hak_uang || 0).toLocaleString('id-ID') %></td>
+                  <td class="px-4 py-3 text-right">
+                    <% if (Number(item.already_distributed) === 1) { %>
+                      <span class="text-xs px-2 py-1 rounded bg-slate-200 text-slate-700">Sudah Tersalurkan</span>
+                    <% } else { %>
+                      <button type="button" class="salurkanBtn text-emerald-600 hover:text-emerald-700" data-item='<%- JSON.stringify(item) %>'>Salurkan</button>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm p-4">
+        <form method="GET" action="/distribusi" class="grid md:grid-cols-3 gap-3 mb-3">
+          <input name="search" value="<%= filters.search %>" placeholder="Cari mustahik" class="rounded-lg border border-slate-300 px-3 py-2" />
+          <select name="status" class="rounded-lg border border-slate-300 px-3 py-2">
+            <option value="">Semua Status</option>
+            <option value="tersalurkan" <%= filters.status === 'tersalurkan' ? 'selected' : '' %>>Tersalurkan</option>
+            <option value="batal" <%= filters.status === 'batal' ? 'selected' : '' %>>Batal</option>
+          </select>
+          <div class="flex gap-2 justify-end">
+            <a href="/distribusi" class="px-4 py-2 rounded-lg border border-slate-300 text-sm">Reset</a>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm">Filter</button>
+          </div>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="text-left px-4 py-3">Mustahik</th>
+                <th class="text-left px-4 py-3">Jenis</th>
+                <th class="text-left px-4 py-3">Jumlah</th>
+                <th class="text-left px-4 py-3">Tanggal</th>
+                <th class="text-left px-4 py-3">Status</th>
+                <th class="text-left px-4 py-3">Oleh</th>
+                <th class="text-right px-4 py-3">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (distribusiList.length === 0) { %>
+                <tr>
+                  <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada distribusi</td>
+                </tr>
+              <% } %>
+              <% distribusiList.forEach((item) => { %>
+                <tr class="border-t border-slate-100">
+                  <td class="px-4 py-3"><%= item.mustahik_nama %></td>
+                  <td class="px-4 py-3 uppercase"><%= item.jenis_distribusi %></td>
+                  <td class="px-4 py-3">
+                    <% if (item.jenis_distribusi === 'beras') { %>
+                      <%= Number(item.jumlah_beras_kg || 0).toFixed(2) %> kg
+                    <% } else { %>
+                      Rp <%= Number(item.jumlah_uang || 0).toLocaleString('id-ID') %>
+                    <% } %>
+                  </td>
+                  <td class="px-4 py-3"><%= String(item.tanggal_salur).slice(0, 10) %></td>
+                  <td class="px-4 py-3">
+                    <% if (item.status === 'tersalurkan') { %>
+                      <span class="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700">Tersalurkan</span>
+                    <% } else { %>
+                      <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Batal</span>
+                    <% } %>
+                  </td>
+                  <td class="px-4 py-3"><%= item.disalurkan_oleh_nama || '-' %></td>
+                  <td class="px-4 py-3 text-right">
+                    <% if (user.role === 'admin' && item.status === 'tersalurkan') { %>
+                      <button type="button" class="cancelBtn text-red-600 hover:text-red-700" data-id="<%= item.id %>">Batalkan</button>
+                    <% } else { %>
+                      -
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4">
+      <div class="bg-white w-full max-w-2xl rounded-xl p-5">
+        <h2 id="modalTitle" class="text-lg font-semibold mb-4">Salurkan Zakat</h2>
+
+        <form id="distribusiForm" class="grid md:grid-cols-2 gap-3">
+          <div class="md:col-span-2">
+            <label class="text-sm">Mustahik</label>
+            <select id="mustahik_id" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+              <option value="">Pilih Mustahik</option>
+              <% mustahikList.filter((m) => Number(m.already_distributed) === 0).forEach((item) => { %>
+                <option value="<%= item.id %>"><%= item.nama %> - <%= item.kategori %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm">Jenis Distribusi</label>
+            <select id="jenis_distribusi" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+              <option value="beras">Beras</option>
+              <option value="uang">Uang</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-sm">Tanggal Salur</label>
+            <input id="tanggal_salur" type="date" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">Jumlah Beras (kg)</label>
+            <input id="jumlah_beras_kg" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="text-sm">Jumlah Uang</label>
+            <input id="jumlah_uang" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="text-sm">Catatan</label>
+            <input id="catatan" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+
+          <p id="formError" class="md:col-span-2 text-sm text-red-600 hidden"></p>
+
+          <div class="md:col-span-2 flex justify-end gap-2 pt-2">
+            <button type="button" id="closeModal" class="px-4 py-2 border border-slate-300 rounded-lg">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Konfirmasi Salur</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      window.SIZAKAT = { userRole: '<%= user.role %>' };
+    </script>
+    <script src="/js/distribusi-page.js"></script>
+  </body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 min-h-screen">
+    <%- include('../layouts/topnav', { title, user, activePage }) %>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-5">
+      <section class="bg-white rounded-xl shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">Ringkasan Laporan</h2>
+          <p class="text-sm text-slate-500">Penerimaan, distribusi, dan sisa zakat</p>
+        </div>
+        <a href="/api/laporan/cetak" target="_blank" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm">Cetak Laporan</a>
+      </section>
+
+      <section class="grid md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4">
+          <p class="text-sm text-slate-500">Penerimaan Beras</p>
+          <p class="text-2xl font-semibold"><%= Number(penerimaanSummary.total_beras_kg || 0).toFixed(2) %> kg</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4">
+          <p class="text-sm text-slate-500">Penerimaan Uang</p>
+          <p class="text-2xl font-semibold">Rp <%= Number(penerimaanSummary.total_uang || 0).toLocaleString('id-ID') %></p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4">
+          <p class="text-sm text-slate-500">Sisa</p>
+          <p class="text-sm font-medium">Beras: <%= Number(sisa.sisa_beras_kg || 0).toFixed(2) %> kg</p>
+          <p class="text-sm font-medium">Uang: Rp <%= Number(sisa.sisa_uang || 0).toLocaleString('id-ID') %></p>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm p-4 overflow-x-auto">
+        <h3 class="font-semibold mb-2">Distribusi per Kategori Mustahik</h3>
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="text-left px-3 py-2">Kategori</th>
+              <th class="text-left px-3 py-2">Total</th>
+              <th class="text-left px-3 py-2">Beras (kg)</th>
+              <th class="text-left px-3 py-2">Uang (Rp)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% distribusiPerKategori.forEach((row) => { %>
+              <tr class="border-t border-slate-100">
+                <td class="px-3 py-2"><%= row.kategori %></td>
+                <td class="px-3 py-2"><%= row.total_transaksi %></td>
+                <td class="px-3 py-2"><%= Number(row.total_beras_kg || 0).toFixed(2) %></td>
+                <td class="px-3 py-2"><%= Number(row.total_uang || 0).toLocaleString('id-ID') %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="grid lg:grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl shadow-sm p-4 overflow-x-auto">
+          <h3 class="font-semibold mb-2">Penerimaan per RT/RW</h3>
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="text-left px-3 py-2">RT/RW</th>
+                <th class="text-left px-3 py-2">Muzakki</th>
+                <th class="text-left px-3 py-2">Beras</th>
+                <th class="text-left px-3 py-2">Uang</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% penerimaanPerRtRw.forEach((row) => { %>
+                <tr class="border-t border-slate-100">
+                  <td class="px-3 py-2">RT <%= row.rt %> / RW <%= row.rw %></td>
+                  <td class="px-3 py-2"><%= row.total_muzakki %></td>
+                  <td class="px-3 py-2"><%= Number(row.total_beras_kg || 0).toFixed(2) %> kg</td>
+                  <td class="px-3 py-2">Rp <%= Number(row.total_uang || 0).toLocaleString('id-ID') %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-4 overflow-x-auto">
+          <h3 class="font-semibold mb-2">Distribusi per RT/RW</h3>
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="text-left px-3 py-2">RT/RW</th>
+                <th class="text-left px-3 py-2">Distribusi</th>
+                <th class="text-left px-3 py-2">Beras</th>
+                <th class="text-left px-3 py-2">Uang</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% distribusiPerRtRw.forEach((row) => { %>
+                <tr class="border-t border-slate-100">
+                  <td class="px-3 py-2">RT <%= row.rt %> / RW <%= row.rw %></td>
+                  <td class="px-3 py-2"><%= row.total_distribusi %></td>
+                  <td class="px-3 py-2"><%= Number(row.total_beras_kg || 0).toFixed(2) %> kg</td>
+                  <td class="px-3 py-2">Rp <%= Number(row.total_uang || 0).toLocaleString('id-ID') %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        const response = await fetch('/auth/logout', { method: 'POST' });
+        if (response.ok) window.location.href = '/login';
+      });
+    </script>
+  </body>
+</html>

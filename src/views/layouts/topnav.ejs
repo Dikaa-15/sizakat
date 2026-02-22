@@ -1,0 +1,31 @@
+<header class="bg-emerald-700 text-white">
+  <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div>
+      <p class="text-xs uppercase tracking-wider opacity-80">SiZakat</p>
+      <h1 class="text-xl font-semibold"><%= title %></h1>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="/dashboard" class="text-sm px-3 py-1.5 rounded-lg <%= activePage === 'dashboard' ? 'bg-white text-emerald-700' : 'bg-white/20 hover:bg-white/30' %>">
+        Dashboard
+      </a>
+      <a href="/master/rt-rw" class="text-sm px-3 py-1.5 rounded-lg <%= activePage === 'master-rt-rw' ? 'bg-white text-emerald-700' : 'bg-white/20 hover:bg-white/30' %>">
+        Master RT/RW
+      </a>
+      <a href="/muzakki" class="text-sm px-3 py-1.5 rounded-lg <%= activePage === 'muzakki' ? 'bg-white text-emerald-700' : 'bg-white/20 hover:bg-white/30' %>">
+        Muzakki
+      </a>
+      <a href="/mustahik" class="text-sm px-3 py-1.5 rounded-lg <%= activePage === 'mustahik' ? 'bg-white text-emerald-700' : 'bg-white/20 hover:bg-white/30' %>">
+        Mustahik
+      </a>
+      <a href="/distribusi" class="text-sm px-3 py-1.5 rounded-lg <%= activePage === 'distribusi' ? 'bg-white text-emerald-700' : 'bg-white/20 hover:bg-white/30' %>">
+        Distribusi
+      </a>
+      <a href="/laporan" class="text-sm px-3 py-1.5 rounded-lg <%= activePage === 'laporan' ? 'bg-white text-emerald-700' : 'bg-white/20 hover:bg-white/30' %>">
+        Laporan
+      </a>
+      <p class="text-sm px-2"><%= user.nama %> (<%= user.role %>)</p>
+      <button id="logoutBtn" class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg">Logout</button>
+    </div>
+  </div>
+</header>

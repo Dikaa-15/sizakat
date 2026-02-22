@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
+      <h1 class="text-2xl font-bold text-slate-800 mb-2">SiZakat</h1>
+      <p class="text-sm text-slate-500 mb-6">Masuk untuk mengelola data zakat fitrah.</p>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium text-slate-700">Username</label>
+          <input id="username" name="username" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+          <input id="password" name="password" type="password" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </div>
+
+        <p id="errorText" class="text-sm text-red-600 hidden"></p>
+
+        <button type="submit" class="w-full rounded-lg bg-emerald-600 text-white py-2.5 font-medium hover:bg-emerald-700">
+          Login
+        </button>
+      </form>
+    </div>
+
+    <script>
+      const form = document.getElementById('loginForm');
+      const errorText = document.getElementById('errorText');
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        errorText.classList.add('hidden');
+
+        const payload = {
+          username: form.username.value,
+          password: form.password.value
+        };
+
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          errorText.textContent = result.message || 'Login gagal';
+          errorText.classList.remove('hidden');
+          return;
+        }
+
+        window.location.href = '/muzakki';
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 text-slate-800 min-h-screen">
+    <%- include('../layouts/topnav', { title, user, activePage }) %>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-5">
+      <section class="bg-white rounded-xl shadow-sm p-4">
+        <form method="GET" action="/master/rt-rw" class="grid md:grid-cols-4 gap-3">
+          <input name="search" value="<%= filters.search %>" placeholder="Cari RT/RW atau ketua" class="md:col-span-2 rounded-lg border border-slate-300 px-3 py-2" />
+
+          <select name="status" class="rounded-lg border border-slate-300 px-3 py-2">
+            <option value="">Semua Status</option>
+            <option value="aktif" <%= filters.status === 'aktif' ? 'selected' : '' %>>Aktif</option>
+            <option value="nonaktif" <%= filters.status === 'nonaktif' ? 'selected' : '' %>>Nonaktif</option>
+          </select>
+
+          <div class="flex gap-2 justify-end">
+            <a href="/master/rt-rw" class="px-4 py-2 rounded-lg border border-slate-300 text-sm">Reset</a>
+            <button type="submit" class="px-4 py-2 rounded-lg bg-slate-800 text-white text-sm">Filter</button>
+            <% if (user.role === 'admin') { %>
+              <button type="button" id="openCreateModal" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm">Tambah RT/RW</button>
+            <% } %>
+          </div>
+        </form>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-slate-600">
+            <tr>
+              <th class="text-left px-4 py-3">RT</th>
+              <th class="text-left px-4 py-3">RW</th>
+              <th class="text-left px-4 py-3">Ketua RT</th>
+              <th class="text-left px-4 py-3">Jumlah KK</th>
+              <th class="text-left px-4 py-3">Status</th>
+              <th class="text-left px-4 py-3">Keterangan</th>
+              <th class="text-right px-4 py-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (rtRwList.length === 0) { %>
+              <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada data RT/RW</td>
+              </tr>
+            <% } %>
+
+            <% rtRwList.forEach((item) => { %>
+              <tr class="border-t border-slate-100">
+                <td class="px-4 py-3"><%= item.rt %></td>
+                <td class="px-4 py-3"><%= item.rw %></td>
+                <td class="px-4 py-3"><%= item.nama_ketua_rt || '-' %></td>
+                <td class="px-4 py-3"><%= item.jumlah_kk || '-' %></td>
+                <td class="px-4 py-3">
+                  <% if (Number(item.is_active) === 1) { %>
+                    <span class="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700">Aktif</span>
+                  <% } else { %>
+                    <span class="px-2 py-1 text-xs rounded bg-slate-200 text-slate-700">Nonaktif</span>
+                  <% } %>
+                </td>
+                <td class="px-4 py-3"><%= item.keterangan || '-' %></td>
+                <td class="px-4 py-3 text-right">
+                  <% if (user.role === 'admin') { %>
+                    <button type="button" class="editBtn text-blue-600 hover:text-blue-700 mr-3" data-item='<%- JSON.stringify(item) %>'>Edit</button>
+                    <% if (Number(item.is_active) === 1) { %>
+                      <button type="button" class="deactivateBtn text-red-600 hover:text-red-700" data-id="<%= item.id %>">Nonaktifkan</button>
+                    <% } %>
+                  <% } else { %>
+                    -
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <% if (user.role === 'admin') { %>
+      <div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-xl rounded-xl p-5">
+          <h2 id="modalTitle" class="text-lg font-semibold mb-4">Tambah RT/RW</h2>
+
+          <form id="rtRwForm" class="grid md:grid-cols-2 gap-3">
+            <input type="hidden" id="rtRwId" />
+
+            <div>
+              <label class="text-sm">RT</label>
+              <input id="rt" required maxlength="5" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+
+            <div>
+              <label class="text-sm">RW</label>
+              <input id="rw" required maxlength="5" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-sm">Nama Ketua RT</label>
+              <input id="nama_ketua_rt" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+
+            <div>
+              <label class="text-sm">Jumlah KK</label>
+              <input id="jumlah_kk" type="number" min="0" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+
+            <div>
+              <label class="text-sm">Status</label>
+              <select id="is_active" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option value="1">Aktif</option>
+                <option value="0">Nonaktif</option>
+              </select>
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="text-sm">Keterangan</label>
+              <input id="keterangan" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+
+            <p id="formError" class="md:col-span-2 text-sm text-red-600 hidden"></p>
+
+            <div class="md:col-span-2 flex justify-end gap-2 pt-2">
+              <button type="button" id="closeModal" class="px-4 py-2 border border-slate-300 rounded-lg">Batal</button>
+              <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg">Simpan</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    <% } %>
+
+    <script>
+      window.SIZAKAT = {
+        userRole: '<%= user.role %>'
+      };
+    </script>
+    <script src="/js/master-rt-rw-page.js"></script>
+  </body>
+</html>
