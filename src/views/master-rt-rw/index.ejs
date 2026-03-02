@@ -30,7 +30,8 @@
         </form>
       </section>
 
-      <section class="bg-white rounded-xl shadow-sm overflow-x-auto">
+      <section class="bg-white rounded-xl shadow-sm">
+        <div class="hidden md:block overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-slate-600">
             <tr>
@@ -78,6 +79,36 @@
             <% }) %>
           </tbody>
         </table>
+        </div>
+
+        <div class="md:hidden p-3 space-y-3">
+          <% if (rtRwList.length === 0) { %>
+            <div class="rounded-lg border border-slate-200 p-4 text-sm text-slate-500 text-center">Belum ada data RT/RW</div>
+          <% } %>
+          <% rtRwList.forEach((item) => { %>
+            <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="font-semibold">RT <%= item.rt %> / RW <%= item.rw %></p>
+                <% if (Number(item.is_active) === 1) { %>
+                  <span class="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700">Aktif</span>
+                <% } else { %>
+                  <span class="px-2 py-1 text-xs rounded bg-slate-200 text-slate-700">Nonaktif</span>
+                <% } %>
+              </div>
+              <p class="text-sm text-slate-600">Ketua: <%= item.nama_ketua_rt || '-' %></p>
+              <p class="text-sm text-slate-600">Jumlah KK: <%= item.jumlah_kk || '-' %></p>
+              <p class="text-sm text-slate-600">Keterangan: <%= item.keterangan || '-' %></p>
+              <% if (user.role === 'admin') { %>
+                <div class="pt-1 flex gap-3 text-sm">
+                  <button type="button" class="editBtn text-blue-600" data-item='<%- JSON.stringify(item) %>'>Edit</button>
+                  <% if (Number(item.is_active) === 1) { %>
+                    <button type="button" class="deactivateBtn text-red-600" data-id="<%= item.id %>">Nonaktifkan</button>
+                  <% } %>
+                </div>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
       </section>
     </main>
 

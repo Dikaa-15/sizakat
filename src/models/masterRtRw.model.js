@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { pool, getDatabaseMode } = require('../config/database');
 
 async function listAll() {
   const [rows] = await pool.execute(
@@ -25,12 +25,24 @@ async function findById(id) {
 async function create(payload) {
   const { rt, rw, namaKetuaRt, jumlahKk, keterangan } = payload;
 
+  const values = [rt, rw, namaKetuaRt || null, jumlahKk || null, keterangan || null];
+  const mode = getDatabaseMode();
+
+  if (mode === 'supabase' || mode === 'postgres') {
+    const [result] = await pool.execute(
+      `INSERT INTO master_rt_rw (rt, rw, nama_ketua_rt, jumlah_kk, keterangan, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, 1, NOW())
+       RETURNING id`,
+      values
+    );
+    return findById(result.insertId);
+  }
+
   const [result] = await pool.execute(
     `INSERT INTO master_rt_rw (rt, rw, nama_ketua_rt, jumlah_kk, keterangan, is_active, created_at)
      VALUES (?, ?, ?, ?, ?, 1, NOW())`,
-    [rt, rw, namaKetuaRt || null, jumlahKk || null, keterangan || null]
+    values
   );
-
   return findById(result.insertId);
 }
 

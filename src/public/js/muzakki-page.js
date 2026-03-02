@@ -21,6 +21,58 @@
     no_hp: document.getElementById('no_hp'),
     keterangan: document.getElementById('keterangan')
   };
+  const wrappers = {
+    beras: document.getElementById('pembayaran_beras_wrapper'),
+    uang: document.getElementById('pembayaran_uang_wrapper')
+  };
+  const infoPerhitungan = document.getElementById('info_perhitungan');
+
+  const zakatPerJiwaKg = Number(window.SIZAKAT?.zakatPerJiwaKg || 3.5);
+  const zakatPerJiwaUang = Number(window.SIZAKAT?.zakatPerJiwaUang || 50000);
+
+  function extractDigits(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  function extractWeightNumber(value) {
+    const normalized = String(value || '')
+      .replace(/kg/gi, '')
+      .replace(',', '.')
+      .replace(/[^0-9.]/g, '');
+    if (!normalized) {
+      return '';
+    }
+
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return '';
+    }
+
+    return String(parsed);
+  }
+
+  function formatRupiah(value) {
+    const digits = extractDigits(value);
+    if (!digits) {
+      return '';
+    }
+
+    return `Rp${Number(digits).toLocaleString('id-ID')}`;
+  }
+
+  function formatKg(value) {
+    const numeric = extractWeightNumber(value);
+    if (!numeric) {
+      return '';
+    }
+
+    const parsed = Number(numeric);
+    const formatted = Number.isInteger(parsed)
+      ? String(parsed)
+      : parsed.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+    return `${formatted}kg`;
+  }
 
   function openModal() {
     modal.classList.remove('hidden');
@@ -39,6 +91,9 @@
     idInput.value = '';
     modalTitle.textContent = 'Tambah Muzakki';
     fields.tanggal_bayar.value = new Date().toISOString().slice(0, 10);
+    fields.jumlah_uang.value = '';
+    updateJenisZakatUI();
+    updateInfoPerhitungan();
   }
 
   function fillForm(item) {
@@ -52,22 +107,61 @@
     fields.tanggal_bayar.value = String(item.tanggal_bayar || '').slice(0, 10);
     const totalBeras = Number(item.jumlah_beras_kg || 0) + Number(item.sedekah_beras_kg || 0);
     const totalUang = Number(item.jumlah_uang || 0) + Number(item.sedekah_uang || 0);
-    fields.jumlah_beras_kg.value = totalBeras || '';
-    fields.jumlah_uang.value = totalUang || '';
+    fields.jumlah_beras_kg.value = totalBeras ? formatKg(totalBeras) : '';
+    fields.jumlah_uang.value = totalUang ? formatRupiah(totalUang) : '';
     fields.alamat_detail.value = item.alamat_detail || '';
     fields.no_hp.value = item.no_hp || '';
     fields.keterangan.value = item.keterangan || '';
+    updateJenisZakatUI();
+    updateInfoPerhitungan();
+  }
+
+  function updateJenisZakatUI() {
+    const jenis = fields.jenis_zakat.value;
+
+    if (jenis === 'beras') {
+      wrappers.beras.classList.remove('hidden');
+      wrappers.uang.classList.add('hidden');
+      fields.jumlah_uang.value = '';
+      return;
+    }
+
+    wrappers.uang.classList.remove('hidden');
+    wrappers.beras.classList.add('hidden');
+    fields.jumlah_beras_kg.value = '';
+  }
+
+  function updateInfoPerhitungan() {
+    const jumlahJiwa = Number(fields.jumlah_jiwa.value || 0);
+    const jenis = fields.jenis_zakat.value;
+
+    if (!jumlahJiwa || jumlahJiwa <= 0) {
+      infoPerhitungan.textContent = 'Masukkan jumlah jiwa untuk melihat hitungan kewajiban zakat.';
+      return;
+    }
+
+    const wajibBeras = Number((jumlahJiwa * zakatPerJiwaKg).toFixed(2));
+    const wajibUang = Number((jumlahJiwa * zakatPerJiwaUang).toFixed(0));
+
+    if (jenis === 'beras') {
+      infoPerhitungan.textContent = `Kewajiban zakat beras: ${jumlahJiwa} jiwa x ${zakatPerJiwaKg} kg = ${wajibBeras.toFixed(2)} kg. Jika dibayar lebih, selisih dihitung sedekah.`;
+      return;
+    }
+
+    infoPerhitungan.textContent = `Kewajiban zakat uang: ${jumlahJiwa} jiwa x Rp${zakatPerJiwaUang.toLocaleString('id-ID')} = Rp${wajibUang.toLocaleString('id-ID')}. Jika dibayar lebih, selisih dihitung sedekah.`;
   }
 
   function getPayload() {
+    const jenis = fields.jenis_zakat.value;
+
     return {
       nama: fields.nama.value,
       rt_rw_id: fields.rt_rw_id.value,
       jumlah_jiwa: fields.jumlah_jiwa.value,
-      jenis_zakat: fields.jenis_zakat.value,
+      jenis_zakat: jenis,
       tanggal_bayar: fields.tanggal_bayar.value,
-      jumlah_beras_kg: fields.jumlah_beras_kg.value,
-      jumlah_uang: fields.jumlah_uang.value,
+      jumlah_beras_kg: jenis === 'beras' ? extractWeightNumber(fields.jumlah_beras_kg.value) : '',
+      jumlah_uang: jenis === 'uang' ? extractDigits(fields.jumlah_uang.value) : '',
       alamat_detail: fields.alamat_detail.value,
       no_hp: fields.no_hp.value,
       keterangan: fields.keterangan.value
@@ -139,6 +233,21 @@
 
     window.location.reload();
   });
+
+  fields.jumlah_uang.addEventListener('input', () => {
+    fields.jumlah_uang.value = formatRupiah(fields.jumlah_uang.value);
+  });
+  fields.jumlah_beras_kg.addEventListener('input', () => {
+    fields.jumlah_beras_kg.value = formatKg(fields.jumlah_beras_kg.value);
+  });
+  fields.jenis_zakat.addEventListener('change', () => {
+    updateJenisZakatUI();
+    updateInfoPerhitungan();
+  });
+  fields.jumlah_jiwa.addEventListener('input', updateInfoPerhitungan);
+
+  updateJenisZakatUI();
+  updateInfoPerhitungan();
 
   logoutBtn.addEventListener('click', async () => {
     const response = await fetch('/auth/logout', { method: 'POST' });

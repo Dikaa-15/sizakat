@@ -1,4 +1,5 @@
 const reportingModel = require('../models/reporting.model');
+const { HttpError } = require('../utils/http-error');
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('id-ID');
@@ -8,45 +9,32 @@ function formatWeight(value) {
   return Number(value || 0).toFixed(2);
 }
 
-async function penerimaan(req, res, next) {
-  try {
-    const [summary, perRtRw] = await Promise.all([
-      reportingModel.getPenerimaanSummary(),
-      reportingModel.getPenerimaanPerRtRw()
-    ]);
-
-    return res.json({ data: { summary, per_rt_rw: perRtRw } });
-  } catch (error) {
-    return next(error);
+function normalizeDateFilter(value, fieldName) {
+  if (!value) {
+    return null;
   }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new HttpError(400, `${fieldName} tidak valid`);
+  }
+
+  return String(value).slice(0, 10);
 }
 
-async function distribusi(req, res, next) {
-  try {
-    const [summary, perKategori, perRtRw] = await Promise.all([
-      reportingModel.getDistribusiSummary(),
-      reportingModel.getDistribusiPerKategori(),
-      reportingModel.getDistribusiPerRtRw()
-    ]);
+function getDateFilters(query) {
+  const dateFrom = normalizeDateFilter(query.date_from, 'date_from');
+  const dateTo = normalizeDateFilter(query.date_to, 'date_to');
 
-    return res.json({ data: { summary, per_kategori: perKategori, per_rt_rw: perRtRw } });
-  } catch (error) {
-    return next(error);
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    throw new HttpError(400, 'date_from tidak boleh lebih besar dari date_to');
   }
+
+  return { dateFrom, dateTo };
 }
 
-async function cetak(req, res, next) {
-  try {
-    const [penerimaanSummary, distribusiSummary, sisa, perKategori, penerimaanRtRw, distribusiRtRw] = await Promise.all([
-      reportingModel.getPenerimaanSummary(),
-      reportingModel.getDistribusiSummary(),
-      reportingModel.getSisaZakat(),
-      reportingModel.getDistribusiPerKategori(),
-      reportingModel.getPenerimaanPerRtRw(),
-      reportingModel.getDistribusiPerRtRw()
-    ]);
-
-    const html = `<!doctype html>
+function buildLaporanHtml({ penerimaanSummary, distribusiSummary, sisa, perKategori, penerimaanRtRw, distribusiRtRw, includePrintScript }) {
+  return `<!doctype html>
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
@@ -70,8 +58,10 @@ async function cetak(req, res, next) {
     <div class="card">
       <strong>Penerimaan</strong>
       <div>Total Muzakki: ${penerimaanSummary.total_muzakki}</div>
-      <div>Total Beras: ${formatWeight(penerimaanSummary.total_beras_kg)} kg</div>
-      <div>Total Uang: Rp ${formatCurrency(penerimaanSummary.total_uang)}</div>
+      <div>Total Zakat Beras: ${formatWeight(penerimaanSummary.total_beras_kg)} kg</div>
+      <div>Total Zakat Uang: Rp ${formatCurrency(penerimaanSummary.total_uang)}</div>
+      <div>Total Sedekah Beras: ${formatWeight(penerimaanSummary.total_sedekah_beras_kg)} kg</div>
+      <div>Total Sedekah Uang: Rp ${formatCurrency(penerimaanSummary.total_sedekah_uang)}</div>
     </div>
     <div class="card">
       <strong>Distribusi</strong>
@@ -101,14 +91,16 @@ async function cetak(req, res, next) {
 
   <h2>Penerimaan per RT/RW</h2>
   <table>
-    <thead><tr><th>RT/RW</th><th>Muzakki</th><th>Beras (kg)</th><th>Uang (Rp)</th></tr></thead>
+    <thead><tr><th>RT/RW</th><th>Muzakki</th><th>Zakat Beras (kg)</th><th>Zakat Uang (Rp)</th><th>Sedekah Beras (kg)</th><th>Sedekah Uang (Rp)</th></tr></thead>
     <tbody>
       ${penerimaanRtRw
         .map(
           (row) =>
             `<tr><td>RT ${row.rt} / RW ${row.rw}</td><td>${row.total_muzakki}</td><td>${formatWeight(
               row.total_beras_kg
-            )}</td><td>${formatCurrency(row.total_uang)}</td></tr>`
+            )}</td><td>${formatCurrency(row.total_uang)}</td><td>${formatWeight(
+              row.total_sedekah_beras_kg
+            )}</td><td>${formatCurrency(row.total_sedekah_uang)}</td></tr>`
         )
         .join('')}
     </tbody>
@@ -129,11 +121,89 @@ async function cetak(req, res, next) {
     </tbody>
   </table>
 
-  <script>window.print();</script>
+  ${includePrintScript ? '<script>window.print();</script>' : ''}
 </body>
 </html>`;
+}
+
+async function getLaporanData(filters) {
+  const [penerimaanSummary, distribusiSummary, sisa, perKategori, penerimaanRtRw, distribusiRtRw] = await Promise.all([
+    reportingModel.getPenerimaanSummary(filters),
+    reportingModel.getDistribusiSummary(filters),
+    reportingModel.getSisaZakat(filters),
+    reportingModel.getDistribusiPerKategori(filters),
+    reportingModel.getPenerimaanPerRtRw(filters),
+    reportingModel.getDistribusiPerRtRw(filters)
+  ]);
+
+  return {
+    penerimaanSummary,
+    distribusiSummary,
+    sisa,
+    perKategori,
+    penerimaanRtRw,
+    distribusiRtRw
+  };
+}
+
+async function penerimaan(req, res, next) {
+  try {
+    const filters = getDateFilters(req.query);
+    const [summary, perRtRw] = await Promise.all([
+      reportingModel.getPenerimaanSummary(filters),
+      reportingModel.getPenerimaanPerRtRw(filters)
+    ]);
+
+    return res.json({ data: { summary, per_rt_rw: perRtRw, filters } });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function distribusi(req, res, next) {
+  try {
+    const filters = getDateFilters(req.query);
+    const [summary, perKategori, perRtRw] = await Promise.all([
+      reportingModel.getDistribusiSummary(filters),
+      reportingModel.getDistribusiPerKategori(filters),
+      reportingModel.getDistribusiPerRtRw(filters)
+    ]);
+
+    return res.json({ data: { summary, per_kategori: perKategori, per_rt_rw: perRtRw, filters } });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function cetak(req, res, next) {
+  try {
+    const filters = getDateFilters(req.query);
+    const data = await getLaporanData(filters);
+
+    const html = buildLaporanHtml({
+      ...data,
+      includePrintScript: true
+    });
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function exportExcel(req, res, next) {
+  try {
+    const filters = getDateFilters(req.query);
+    const data = await getLaporanData(filters);
+
+    const html = buildLaporanHtml({
+      ...data,
+      includePrintScript: false
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.ms-excel; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="laporan-sizakat-${new Date().toISOString().slice(0, 10)}.xls"`);
     return res.send(html);
   } catch (error) {
     return next(error);
@@ -143,5 +213,6 @@ async function cetak(req, res, next) {
 module.exports = {
   penerimaan,
   distribusi,
-  cetak
+  cetak,
+  exportExcel
 };

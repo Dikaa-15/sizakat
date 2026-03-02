@@ -1,9 +1,45 @@
-const { pool } = require('../config/database');
+const { pool, getDatabaseMode } = require('../config/database');
 const distribusiModel = require('../models/distribusi.model');
 const { HttpError } = require('../utils/http-error');
 
 const ALLOWED_STATUS = new Set(['tersalurkan', 'batal']);
 const ALLOWED_JENIS = new Set(['beras', 'uang']);
+const DISTRIBUSI_LOCK_KEY = 'sizakat_distribusi_stock';
+
+async function acquireStockLock(conn) {
+  const mode = getDatabaseMode();
+
+  if (mode === 'supabase' || mode === 'postgres') {
+    const [rows] = await conn.query(
+      "SELECT pg_try_advisory_lock(hashtext(?)) AS locked",
+      [DISTRIBUSI_LOCK_KEY]
+    );
+    return Boolean(rows[0]?.locked);
+  }
+
+  const [rows] = await conn.query(
+    "SELECT GET_LOCK(?, 5) AS locked",
+    [DISTRIBUSI_LOCK_KEY]
+  );
+  return Number(rows[0]?.locked) === 1;
+}
+
+async function releaseStockLock(conn) {
+  const mode = getDatabaseMode();
+
+  if (mode === 'supabase' || mode === 'postgres') {
+    await conn.query(
+      "SELECT pg_advisory_unlock(hashtext(?))",
+      [DISTRIBUSI_LOCK_KEY]
+    );
+    return;
+  }
+
+  await conn.query(
+    'SELECT RELEASE_LOCK(?)',
+    [DISTRIBUSI_LOCK_KEY]
+  );
+}
 
 function parsePositiveInt(value, fieldName) {
   const parsed = Number(value);
@@ -114,8 +150,8 @@ async function create(req, res, next) {
     const requestedBeras = parseOptionalAmount(req.body.jumlah_beras_kg, 'jumlah_beras_kg');
     const requestedUang = parseOptionalAmount(req.body.jumlah_uang, 'jumlah_uang');
 
-    const [[lockRow]] = await conn.query(`SELECT GET_LOCK('sizakat_distribusi_stock', 5) AS locked`);
-    if (!lockRow || Number(lockRow.locked) !== 1) {
+    const locked = await acquireStockLock(conn);
+    if (!locked) {
       throw new HttpError(423, 'Sistem sedang memproses distribusi lain, coba lagi');
     }
     lockAcquired = true;
@@ -184,7 +220,7 @@ async function create(req, res, next) {
   } finally {
     if (lockAcquired) {
       try {
-        await conn.query(`SELECT RELEASE_LOCK('sizakat_distribusi_stock')`);
+        await releaseStockLock(conn);
       } catch (_error) {
         // ignore lock release errors
       }
@@ -201,8 +237,8 @@ async function cancel(req, res, next) {
   try {
     const id = parsePositiveInt(req.params.id, 'id');
 
-    const [[lockRow]] = await conn.query(`SELECT GET_LOCK('sizakat_distribusi_stock', 5) AS locked`);
-    if (!lockRow || Number(lockRow.locked) !== 1) {
+    const locked = await acquireStockLock(conn);
+    if (!locked) {
       throw new HttpError(423, 'Sistem sedang memproses distribusi lain, coba lagi');
     }
     lockAcquired = true;
@@ -242,7 +278,7 @@ async function cancel(req, res, next) {
   } finally {
     if (lockAcquired) {
       try {
-        await conn.query(`SELECT RELEASE_LOCK('sizakat_distribusi_stock')`);
+        await releaseStockLock(conn);
       } catch (_error) {
         // ignore lock release errors
       }

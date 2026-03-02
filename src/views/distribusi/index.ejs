@@ -28,7 +28,7 @@
           <h2 class="font-semibold">Daftar Mustahik</h2>
           <button type="button" id="openCreateModal" class="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm">Salurkan Manual</button>
         </div>
-        <div class="overflow-x-auto">
+        <div class="hidden md:block overflow-x-auto">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
@@ -60,6 +60,24 @@
             </tbody>
           </table>
         </div>
+        <div class="md:hidden space-y-3">
+          <% mustahikList.forEach((item) => { %>
+            <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="font-semibold"><%= item.nama %></p>
+                <p class="text-xs text-slate-500"><%= item.kategori %></p>
+              </div>
+              <p class="text-sm text-slate-600">RT/RW: <%= item.rt && item.rw ? `RT ${item.rt} / RW ${item.rw}` : '-' %></p>
+              <p class="text-sm text-slate-600">Hak Beras: <%= Number(item.hak_beras_kg || 0).toFixed(2) %> kg</p>
+              <p class="text-sm text-slate-600">Hak Uang: Rp <%= Number(item.hak_uang || 0).toLocaleString('id-ID') %></p>
+              <% if (Number(item.already_distributed) === 1) { %>
+                <span class="text-xs px-2 py-1 rounded bg-slate-200 text-slate-700">Sudah Tersalurkan</span>
+              <% } else { %>
+                <button type="button" class="salurkanBtn text-emerald-600 text-sm" data-item='<%- JSON.stringify(item) %>'>Salurkan</button>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
       </section>
 
       <section class="bg-white rounded-xl shadow-sm p-4">
@@ -76,7 +94,7 @@
           </div>
         </form>
 
-        <div class="overflow-x-auto">
+        <div class="hidden md:block overflow-x-auto">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
@@ -127,6 +145,37 @@
             </tbody>
           </table>
         </div>
+        <div class="md:hidden space-y-3">
+          <% if (distribusiList.length === 0) { %>
+            <div class="rounded-lg border border-slate-200 p-4 text-sm text-slate-500 text-center">Belum ada distribusi</div>
+          <% } %>
+          <% distribusiList.forEach((item) => { %>
+            <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="font-semibold"><%= item.mustahik_nama %></p>
+                <% if (item.status === 'tersalurkan') { %>
+                  <span class="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-700">Tersalurkan</span>
+                <% } else { %>
+                  <span class="px-2 py-1 text-xs rounded bg-red-100 text-red-700">Batal</span>
+                <% } %>
+              </div>
+              <p class="text-sm text-slate-600">Jenis: <span class="uppercase"><%= item.jenis_distribusi %></span></p>
+              <p class="text-sm text-slate-600">
+                Jumlah:
+                <% if (item.jenis_distribusi === 'beras') { %>
+                  <%= Number(item.jumlah_beras_kg || 0).toFixed(2) %> kg
+                <% } else { %>
+                  Rp <%= Number(item.jumlah_uang || 0).toLocaleString('id-ID') %>
+                <% } %>
+              </p>
+              <p class="text-sm text-slate-600">Tanggal: <%= String(item.tanggal_salur).slice(0, 10) %></p>
+              <p class="text-sm text-slate-600">Oleh: <%= item.disalurkan_oleh_nama || '-' %></p>
+              <% if (user.role === 'admin' && item.status === 'tersalurkan') { %>
+                <button type="button" class="cancelBtn text-red-600 text-sm" data-id="<%= item.id %>">Batalkan</button>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
       </section>
     </main>
 
@@ -158,14 +207,20 @@
             <input id="tanggal_salur" type="date" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
           </div>
 
-          <div>
+          <div id="jumlah_beras_wrapper">
             <label class="text-sm">Jumlah Beras (kg)</label>
             <input id="jumlah_beras_kg" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
           </div>
 
-          <div>
+          <div id="jumlah_uang_wrapper">
             <label class="text-sm">Jumlah Uang</label>
-            <input id="jumlah_uang" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <input
+              id="jumlah_uang"
+              type="text"
+              inputmode="numeric"
+              placeholder="Rp50.000"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
           </div>
 
           <div class="md:col-span-2">

@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS pengaturan (
   nama_masjid VARCHAR(200) NOT NULL,
   alamat_masjid TEXT NULL,
   harga_beras_per_kg DECIMAL(15,2) NOT NULL,
-  zakat_per_jiwa_kg DECIMAL(5,2) NOT NULL DEFAULT 2.50,
-  zakat_per_jiwa_uang DECIMAL(15,2) NOT NULL DEFAULT 47000.00,
+  zakat_per_jiwa_kg DECIMAL(5,2) NOT NULL DEFAULT 3.50,
+  zakat_per_jiwa_uang DECIMAL(15,2) NOT NULL DEFAULT 50000.00,
   ketua_dkm VARCHAR(100) NULL,
   sekretaris VARCHAR(100) NULL,
   bendahara VARCHAR(100) NULL

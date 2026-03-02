@@ -15,6 +15,23 @@
     jumlah_uang: document.getElementById('jumlah_uang'),
     catatan: document.getElementById('catatan')
   };
+  const wrappers = {
+    beras: document.getElementById('jumlah_beras_wrapper'),
+    uang: document.getElementById('jumlah_uang_wrapper')
+  };
+
+  function extractDigits(value) {
+    return String(value || '').replace(/\D/g, '');
+  }
+
+  function formatRupiah(value) {
+    const digits = extractDigits(value);
+    if (!digits) {
+      return '';
+    }
+
+    return `Rp${Number(digits).toLocaleString('id-ID')}`;
+  }
 
   function openModal() {
     modal.classList.remove('hidden');
@@ -31,17 +48,36 @@
   function resetForm() {
     form.reset();
     fields.tanggal_salur.value = new Date().toISOString().slice(0, 10);
+    fields.jumlah_uang.value = '';
+    updateJenisDistribusiUI();
   }
 
   function getPayload() {
+    const jenis = fields.jenis_distribusi.value;
+
     return {
       mustahik_id: fields.mustahik_id.value,
-      jenis_distribusi: fields.jenis_distribusi.value,
+      jenis_distribusi: jenis,
       tanggal_salur: fields.tanggal_salur.value,
-      jumlah_beras_kg: fields.jumlah_beras_kg.value,
-      jumlah_uang: fields.jumlah_uang.value,
+      jumlah_beras_kg: jenis === 'beras' ? fields.jumlah_beras_kg.value : '',
+      jumlah_uang: jenis === 'uang' ? extractDigits(fields.jumlah_uang.value) : '',
       catatan: fields.catatan.value
     };
+  }
+
+  function updateJenisDistribusiUI() {
+    const jenis = fields.jenis_distribusi.value;
+
+    if (jenis === 'beras') {
+      wrappers.beras.classList.remove('hidden');
+      wrappers.uang.classList.add('hidden');
+      fields.jumlah_uang.value = '';
+      return;
+    }
+
+    wrappers.uang.classList.remove('hidden');
+    wrappers.beras.classList.add('hidden');
+    fields.jumlah_beras_kg.value = '';
   }
 
   openCreateBtn.addEventListener('click', function onCreateClick() {
@@ -92,6 +128,11 @@
     window.location.reload();
   });
 
+  fields.jenis_distribusi.addEventListener('change', updateJenisDistribusiUI);
+  fields.jumlah_uang.addEventListener('input', () => {
+    fields.jumlah_uang.value = formatRupiah(fields.jumlah_uang.value);
+  });
+
   document.querySelectorAll('.cancelBtn').forEach((button) => {
     button.addEventListener('click', async () => {
       if (!confirm('Batalkan distribusi ini?')) {
@@ -117,4 +158,6 @@
       window.location.href = '/login';
     }
   });
+
+  updateJenisDistribusiUI();
 })();

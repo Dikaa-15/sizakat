@@ -1,5 +1,6 @@
 const masterRtRwModel = require('../models/masterRtRw.model');
 const muzakkiModel = require('../models/muzakki.model');
+const pengaturanModel = require('../models/pengaturan.model');
 const mustahikModel = require('../models/mustahik.model');
 const distribusiModel = require('../models/distribusi.model');
 const reportingModel = require('../models/reporting.model');
@@ -34,6 +35,13 @@ function normalizeDistribusiQuery(query) {
   return {
     search: query.search ? String(query.search).trim() : '',
     status: query.status ? String(query.status).trim() : ''
+  };
+}
+
+function normalizeLaporanQuery(query) {
+  return {
+    date_from: query.date_from ? String(query.date_from).trim() : '',
+    date_to: query.date_to ? String(query.date_to).trim() : ''
   };
 }
 
@@ -99,7 +107,7 @@ async function muzakkiPage(req, res, next) {
   try {
     const query = normalizeQuery(req.query);
 
-    const [rtRwList, muzakkiList] = await Promise.all([
+    const [rtRwList, muzakkiList, pengaturan] = await Promise.all([
       masterRtRwModel.listAll(),
       muzakkiModel.list({
         search: query.search || null,
@@ -107,7 +115,8 @@ async function muzakkiPage(req, res, next) {
         jenisZakat: query.jenis_zakat || null,
         dateFrom: query.date_from || null,
         dateTo: query.date_to || null
-      })
+      }),
+      pengaturanModel.getCurrent()
     ]);
 
     return res.render('muzakki/index', {
@@ -116,7 +125,9 @@ async function muzakkiPage(req, res, next) {
       activePage: 'muzakki',
       filters: query,
       rtRwList: rtRwList.filter((item) => Number(item.is_active) === 1),
-      muzakkiList
+      muzakkiList,
+      zakatPerJiwaKg: Number(pengaturan?.zakat_per_jiwa_kg || 3.5),
+      zakatPerJiwaUang: Number(pengaturan?.zakat_per_jiwa_uang || 50000)
     });
   } catch (error) {
     return next(error);
@@ -180,20 +191,27 @@ async function distribusiPage(req, res, next) {
 
 async function laporanPage(req, res, next) {
   try {
+    const filters = normalizeLaporanQuery(req.query);
+    const reportFilters = {
+      dateFrom: filters.date_from || null,
+      dateTo: filters.date_to || null
+    };
+
     const [penerimaanSummary, distribusiSummary, sisa, distribusiPerKategori, penerimaanPerRtRw, distribusiPerRtRw] =
       await Promise.all([
-        reportingModel.getPenerimaanSummary(),
-        reportingModel.getDistribusiSummary(),
-        reportingModel.getSisaZakat(),
-        reportingModel.getDistribusiPerKategori(),
-        reportingModel.getPenerimaanPerRtRw(),
-        reportingModel.getDistribusiPerRtRw()
+        reportingModel.getPenerimaanSummary(reportFilters),
+        reportingModel.getDistribusiSummary(reportFilters),
+        reportingModel.getSisaZakat(reportFilters),
+        reportingModel.getDistribusiPerKategori(reportFilters),
+        reportingModel.getPenerimaanPerRtRw(reportFilters),
+        reportingModel.getDistribusiPerRtRw(reportFilters)
       ]);
 
     return res.render('laporan/index', {
       title: 'Laporan',
       user: req.user,
       activePage: 'laporan',
+      filters,
       penerimaanSummary,
       distribusiSummary,
       sisa,

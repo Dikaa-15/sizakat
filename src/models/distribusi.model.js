@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { pool, getDatabaseMode } = require('../config/database');
 
 function resolveExecutor(conn) {
   return conn || pool;
@@ -102,20 +102,35 @@ async function create(payload, conn = null) {
     disalurkanOleh
   } = payload;
 
+  const values = [
+    mustahikId,
+    jenisDistribusi,
+    jumlahBerasKg,
+    jumlahUang,
+    tanggalSalur,
+    catatan || null,
+    disalurkanOleh || null
+  ];
+  const mode = getDatabaseMode();
+
+  if (mode === 'supabase' || mode === 'postgres') {
+    const [result] = await executor.execute(
+      `INSERT INTO distribusi
+        (mustahik_id, jenis_distribusi, jumlah_beras_kg, jumlah_uang,
+         tanggal_salur, status, catatan, disalurkan_oleh, created_at)
+       VALUES (?, ?, ?, ?, ?, 'tersalurkan', ?, ?, NOW())
+       RETURNING id`,
+      values
+    );
+    return result.insertId;
+  }
+
   const [result] = await executor.execute(
     `INSERT INTO distribusi
       (mustahik_id, jenis_distribusi, jumlah_beras_kg, jumlah_uang,
        tanggal_salur, status, catatan, disalurkan_oleh, created_at)
      VALUES (?, ?, ?, ?, ?, 'tersalurkan', ?, ?, NOW())`,
-    [
-      mustahikId,
-      jenisDistribusi,
-      jumlahBerasKg,
-      jumlahUang,
-      tanggalSalur,
-      catatan || null,
-      disalurkanOleh || null
-    ]
+    values
   );
 
   return result.insertId;

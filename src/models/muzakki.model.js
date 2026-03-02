@@ -1,4 +1,4 @@
-const { pool } = require('../config/database');
+const { pool, getDatabaseMode } = require('../config/database');
 
 function buildListQuery(filters) {
   const clauses = [];
@@ -85,27 +85,43 @@ async function create(payload) {
     createdBy
   } = payload;
 
+  const values = [
+    nama,
+    rtRwId,
+    alamatDetail || null,
+    noHp || null,
+    jumlahJiwa,
+    jenisZakat,
+    jumlahBerasKg,
+    jumlahUang,
+    sedekahBerasKg || 0,
+    sedekahUang || 0,
+    tanggalBayar,
+    keterangan || null,
+    createdBy || null
+  ];
+  const mode = getDatabaseMode();
+
+  if (mode === 'supabase' || mode === 'postgres') {
+    const [result] = await pool.execute(
+      `INSERT INTO muzakki
+        (nama, rt_rw_id, alamat_detail, no_hp, jumlah_jiwa, jenis_zakat,
+         jumlah_beras_kg, jumlah_uang, sedekah_beras_kg, sedekah_uang,
+         tanggal_bayar, keterangan, created_by, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+       RETURNING id`,
+      values
+    );
+    return findById(result.insertId);
+  }
+
   const [result] = await pool.execute(
     `INSERT INTO muzakki
       (nama, rt_rw_id, alamat_detail, no_hp, jumlah_jiwa, jenis_zakat,
        jumlah_beras_kg, jumlah_uang, sedekah_beras_kg, sedekah_uang,
        tanggal_bayar, keterangan, created_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-    [
-      nama,
-      rtRwId,
-      alamatDetail || null,
-      noHp || null,
-      jumlahJiwa,
-      jenisZakat,
-      jumlahBerasKg,
-      jumlahUang,
-      sedekahBerasKg || 0,
-      sedekahUang || 0,
-      tanggalBayar,
-      keterangan || null,
-      createdBy || null
-    ]
+    values
   );
 
   return findById(result.insertId);

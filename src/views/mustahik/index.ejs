@@ -36,7 +36,8 @@
         </form>
       </section>
 
-      <section class="bg-white rounded-xl shadow-sm overflow-x-auto">
+      <section class="bg-white rounded-xl shadow-sm">
+        <div class="hidden md:block overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-slate-600">
             <tr>
@@ -80,6 +81,31 @@
             <% }) %>
           </tbody>
         </table>
+        </div>
+
+        <div class="md:hidden p-3 space-y-3">
+          <% if (mustahikList.length === 0) { %>
+            <div class="rounded-lg border border-slate-200 p-4 text-sm text-slate-500 text-center">Belum ada data mustahik</div>
+          <% } %>
+          <% mustahikList.forEach((item) => { %>
+            <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="font-semibold"><%= item.nama %></p>
+                <p class="text-xs text-slate-500"><%= item.kategori %></p>
+              </div>
+              <p class="text-sm text-slate-600">RT/RW: <%= item.rt && item.rw ? `RT ${item.rt} / RW ${item.rw}` : '-' %></p>
+              <p class="text-sm text-slate-600">Jiwa: <%= item.jumlah_jiwa %></p>
+              <p class="text-sm text-slate-600">Hak Beras: <%= Number(item.hak_beras_kg || 0).toFixed(2) %> kg</p>
+              <p class="text-sm text-slate-600">Hak Uang: Rp <%= Number(item.hak_uang || 0).toLocaleString('id-ID') %></p>
+              <div class="pt-1 flex gap-3 text-sm">
+                <button type="button" class="editBtn text-blue-600" data-item='<%- JSON.stringify(item) %>'>Edit</button>
+                <% if (user.role === 'admin') { %>
+                  <button type="button" class="deleteBtn text-red-600" data-id="<%= item.id %>">Hapus</button>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
       </section>
     </main>
 

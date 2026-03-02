@@ -38,7 +38,8 @@
         </form>
       </section>
 
-      <section class="bg-white rounded-xl shadow-sm overflow-x-auto">
+      <section class="bg-white rounded-xl shadow-sm">
+        <div class="hidden md:block overflow-x-auto">
         <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-slate-600">
             <tr>
@@ -96,6 +97,41 @@
             <% }) %>
           </tbody>
         </table>
+        </div>
+
+        <div class="md:hidden p-3 space-y-3">
+          <% if (muzakkiList.length === 0) { %>
+            <div class="rounded-lg border border-slate-200 p-4 text-sm text-slate-500 text-center">Belum ada data muzakki</div>
+          <% } %>
+          <% muzakkiList.forEach((item) => { %>
+            <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="font-semibold"><%= item.nama %></p>
+                <p class="text-xs uppercase text-slate-500"><%= item.jenis_zakat %></p>
+              </div>
+              <p class="text-sm text-slate-600">RT/RW: RT <%= item.rt %> / RW <%= item.rw %></p>
+              <p class="text-sm text-slate-600">Jiwa: <%= item.jumlah_jiwa %></p>
+              <p class="text-sm text-slate-600">Tanggal: <%= String(item.tanggal_bayar).slice(0, 10) %></p>
+              <div class="text-sm text-slate-700">
+                <% if (item.jenis_zakat === 'beras') { %>
+                  <% const totalBeras = Number(item.jumlah_beras_kg || 0) + Number(item.sedekah_beras_kg || 0); %>
+                  <p>Total: <%= totalBeras.toFixed(2) %> kg</p>
+                  <p class="text-xs text-slate-500">zakat <%= Number(item.jumlah_beras_kg || 0).toFixed(2) %> kg<% if (Number(item.sedekah_beras_kg || 0) > 0) { %> + sedekah <%= Number(item.sedekah_beras_kg || 0).toFixed(2) %> kg<% } %></p>
+                <% } else { %>
+                  <% const totalUang = Number(item.jumlah_uang || 0) + Number(item.sedekah_uang || 0); %>
+                  <p>Total: Rp <%= totalUang.toLocaleString('id-ID') %></p>
+                  <p class="text-xs text-slate-500">zakat Rp <%= Number(item.jumlah_uang || 0).toLocaleString('id-ID') %><% if (Number(item.sedekah_uang || 0) > 0) { %> + sedekah Rp <%= Number(item.sedekah_uang || 0).toLocaleString('id-ID') %><% } %></p>
+                <% } %>
+              </div>
+              <div class="pt-1 flex gap-3 text-sm">
+                <button type="button" class="editBtn text-blue-600" data-item='<%- JSON.stringify(item) %>'>Edit</button>
+                <% if (user.role === 'admin') { %>
+                  <button type="button" class="deleteBtn text-red-600" data-id="<%= item.id %>">Hapus</button>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
       </section>
     </main>
 
@@ -139,16 +175,32 @@
             <input id="tanggal_bayar" type="date" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
           </div>
 
-          <div>
+          <div id="pembayaran_beras_wrapper">
             <label class="text-sm">Total Dibayar Beras (kg)</label>
-            <input id="jumlah_beras_kg" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <input
+              id="jumlah_beras_kg"
+              type="text"
+              inputmode="decimal"
+              placeholder="7kg"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
             <p class="text-xs text-slate-500 mt-1">Jika lebih dari nilai wajib, selisih dihitung sedekah.</p>
           </div>
 
-          <div>
+          <div id="pembayaran_uang_wrapper">
             <label class="text-sm">Total Dibayar Uang</label>
-            <input id="jumlah_uang" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            <input
+              id="jumlah_uang"
+              type="text"
+              inputmode="numeric"
+              placeholder="Rp50.000"
+              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
             <p class="text-xs text-slate-500 mt-1">Jika lebih dari nilai wajib, selisih dihitung sedekah.</p>
+          </div>
+
+          <div class="md:col-span-2">
+            <p id="info_perhitungan" class="text-xs rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-slate-600"></p>
           </div>
 
           <div class="md:col-span-2">
@@ -176,6 +228,12 @@
       </div>
     </div>
 
+    <script>
+      window.SIZAKAT = {
+        zakatPerJiwaKg: <%= Number(zakatPerJiwaKg || 3.5) %>,
+        zakatPerJiwaUang: <%= Number(zakatPerJiwaUang || 50000) %>
+      };
+    </script>
     <script src="/js/muzakki-page.js"></script>
   </body>
 </html>

@@ -9,5 +9,6 @@ router.use(authenticate);
 router.get('/penerimaan', laporanController.penerimaan);
 router.get('/distribusi', laporanController.distribusi);
 router.get('/cetak', laporanController.cetak);
+router.get('/export-excel', laporanController.exportExcel);
 
 module.exports = router;

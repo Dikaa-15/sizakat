@@ -8,7 +8,7 @@ const ALLOWED_JENIS_ZAKAT = new Set(['beras', 'uang']);
 function parsePositiveInt(value, fieldName) {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new HttpError(400, `${fieldName} must be a positive integer`);
+    throw new HttpError(400, `${fieldName} harus berupa bilangan bulat positif`);
   }
 
   return parsed;
@@ -30,7 +30,7 @@ function parseOptionalDecimal(value, fieldName) {
 
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new HttpError(400, `${fieldName} must be numeric and >= 0`);
+    throw new HttpError(400, `${fieldName} harus berupa angka dan >= 0`);
   }
 
   return parsed;
@@ -38,12 +38,12 @@ function parseOptionalDecimal(value, fieldName) {
 
 function normalizeDate(value) {
   if (!value) {
-    throw new HttpError(400, 'tanggal_bayar is required');
+    throw new HttpError(400, 'tanggal_bayar wajib diisi');
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    throw new HttpError(400, 'tanggal_bayar is invalid');
+    throw new HttpError(400, 'tanggal_bayar tidak valid');
   }
 
   return String(value).slice(0, 10);
@@ -56,7 +56,7 @@ function calculatePayment({ jumlahJiwa, jenisZakat, config, requestedBeras, requ
   if (jenisZakat === 'beras') {
     const dibayarBeras = requestedBeras !== null ? requestedBeras : autoBeras;
     if (dibayarBeras < autoBeras) {
-      throw new HttpError(400, 'jumlah_beras_kg cannot be less than auto calculation');
+      throw new HttpError(400, 'total bayar beras tidak boleh kurang dari kewajiban zakat');
     }
 
     return {
@@ -69,7 +69,7 @@ function calculatePayment({ jumlahJiwa, jenisZakat, config, requestedBeras, requ
 
   const dibayarUang = requestedUang !== null ? requestedUang : autoUang;
   if (dibayarUang < autoUang) {
-    throw new HttpError(400, 'jumlah_uang cannot be less than auto calculation');
+    throw new HttpError(400, 'total bayar uang tidak boleh kurang dari kewajiban zakat');
   }
 
   return {
@@ -84,14 +84,14 @@ async function validateRtRw(rtRwId) {
   const data = await masterRtRwModel.findById(rtRwId);
 
   if (!data || Number(data.is_active) !== 1) {
-    throw new HttpError(400, 'rt_rw_id must reference an active RT/RW');
+    throw new HttpError(400, 'rt_rw_id harus mengacu ke RT/RW aktif');
   }
 }
 
 async function buildPayload(body, userId) {
   const nama = parseOptionalString(body.nama);
   if (!nama) {
-    throw new HttpError(400, 'nama is required');
+    throw new HttpError(400, 'nama wajib diisi');
   }
 
   const rtRwId = parsePositiveInt(body.rt_rw_id, 'rt_rw_id');
@@ -99,7 +99,7 @@ async function buildPayload(body, userId) {
 
   const jenisZakat = parseOptionalString(body.jenis_zakat);
   if (!jenisZakat || !ALLOWED_JENIS_ZAKAT.has(jenisZakat)) {
-    throw new HttpError(400, 'jenis_zakat must be beras or uang');
+    throw new HttpError(400, 'jenis_zakat harus beras atau uang');
   }
 
   await validateRtRw(rtRwId);
@@ -148,7 +148,7 @@ async function list(req, res, next) {
     };
 
     if (filters.jenisZakat && !ALLOWED_JENIS_ZAKAT.has(filters.jenisZakat)) {
-      throw new HttpError(400, 'jenis_zakat filter must be beras or uang');
+      throw new HttpError(400, 'filter jenis_zakat harus beras atau uang');
     }
 
     const rows = await muzakkiModel.list(filters);
@@ -165,7 +165,7 @@ async function detail(req, res, next) {
     const data = await muzakkiModel.findById(id);
 
     if (!data) {
-      throw new HttpError(404, 'Muzakki not found');
+      throw new HttpError(404, 'Data muzakki tidak ditemukan');
     }
 
     return res.json({ data });
@@ -180,7 +180,7 @@ async function create(req, res, next) {
     const data = await muzakkiModel.create(payload);
 
     return res.status(201).json({
-      message: 'Muzakki created',
+      message: 'Data muzakki berhasil ditambahkan',
       data
     });
   } catch (error) {
@@ -194,14 +194,14 @@ async function update(req, res, next) {
     const existing = await muzakkiModel.findById(id);
 
     if (!existing) {
-      throw new HttpError(404, 'Muzakki not found');
+      throw new HttpError(404, 'Data muzakki tidak ditemukan');
     }
 
     const payload = await buildPayload(req.body, existing.created_by);
     const data = await muzakkiModel.update(id, payload);
 
     return res.json({
-      message: 'Muzakki updated',
+      message: 'Data muzakki berhasil diperbarui',
       data
     });
   } catch (error) {
@@ -215,12 +215,12 @@ async function remove(req, res, next) {
     const existing = await muzakkiModel.findById(id);
 
     if (!existing) {
-      throw new HttpError(404, 'Muzakki not found');
+      throw new HttpError(404, 'Data muzakki tidak ditemukan');
     }
 
     await muzakkiModel.remove(id);
 
-    return res.json({ message: 'Muzakki deleted' });
+    return res.json({ message: 'Data muzakki berhasil dihapus' });
   } catch (error) {
     return next(error);
   }

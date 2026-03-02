@@ -12,14 +12,16 @@
     <main class="max-w-7xl mx-auto px-4 py-6 space-y-5">
       <section class="grid md:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500">
-          <p class="text-sm text-slate-500">Total Penerimaan Beras</p>
+          <p class="text-sm text-slate-500">Total Penerimaan Zakat Beras</p>
           <p class="text-2xl font-semibold"><%= Number(summary.penerimaan.total_beras_kg || 0).toFixed(2) %> kg</p>
+          <p class="text-xs text-slate-400">Sedekah beras: <%= Number(summary.penerimaan.total_sedekah_beras_kg || 0).toFixed(2) %> kg</p>
           <p class="text-xs text-slate-400">Muzakki: <%= summary.penerimaan.total_muzakki %></p>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
-          <p class="text-sm text-slate-500">Total Penerimaan Uang</p>
+          <p class="text-sm text-slate-500">Total Penerimaan Zakat Uang</p>
           <p class="text-2xl font-semibold">Rp <%= Number(summary.penerimaan.total_uang || 0).toLocaleString('id-ID') %></p>
+          <p class="text-xs text-slate-400">Sedekah uang: Rp <%= Number(summary.penerimaan.total_sedekah_uang || 0).toLocaleString('id-ID') %></p>
           <p class="text-xs text-slate-400">Distribusi transaksi: <%= summary.distribusi.total_transaksi %></p>
         </div>
 
